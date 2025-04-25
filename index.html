@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MOE Server Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 8px;
+      border-radius: 8px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+<div class="controls">
+  <label>Era:
+    <select id="eraFilter">
+      <option value="all">All</option>
+    </select>
+  </label>
+  <label>Map:
+    <select id="mapFilter">
+      <option value="all">All</option>
+    </select>
+  </label>
+  <label>PvP:
+    <select id="pvpFilter">
+      <option value="all">All</option>
+      <option value="true">PvP</option>
+      <option value="false">No PvP</option>
+    </select>
+  </label>
+</div>
+
+<svg></svg>
+
+<script>
+const width = window.innerWidth;
+const height = window.innerHeight;
+const svg = d3.select("svg");
+const svgGroup = svg.append("g");
+
+const zoom = d3.zoom().on("zoom", (event) => {
+  svgGroup.attr("transform", event.transform);
+});
+svg.call(zoom);
+
+const simulation = d3.forceSimulation()
+  .force("link", d3.forceLink().id(d => d.id).distance(80))
+  .force("charge", d3.forceManyBody().strength(d => d.type === "server" ? -100 : -400))
+  .force("center", d3.forceCenter(width / 2, height / 2))
+  .force("collision", d3.forceCollide().radius(d => d.type === "server" ? d.size + 4 : 20));
+
+function drag(simulation) {
+  return d3.drag()
+    .on("start", (event, d) => {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    })
+    .on("drag", (event, d) => {
+      d.fx = event.x;
+      d.fy = event.y;
+    })
+    .on("end", (event, d) => {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    });
+}
+
+let allNodes = [];
+let allLinks = [];
+
+fetch("/api/servers")
+  .then(res => res.json())
+  .then(data => {
+    const eras = Object.keys(data);
+    const mapsSet = new Set();
+
+    for (const eraName in data) {
+      const eraNode = { id: `era-${eraName}`, label: eraName, type: "era" };
+      allNodes.push(eraNode);
+
+      for (const groupId in data[eraName]) {
+        const group = data[eraName][groupId];
+        const groupNode = { id: `group-${eraName}-${groupId}`, label: groupId, type: "group", era: eraName };
+        allNodes.push(groupNode);
+        allLinks.push({ source: eraNode.id, target: groupNode.id });
+
+        for (const serverId in group.servers) {
+          const server = group.servers[serverId];
+          const players = server.players;
+          const size = 15+ players*0.8;
+          const serverNode = {
+            id: `server-${server.id}`,
+            label: server.id,
+            players: players,
+            type: "server",
+            pvp: server.pvp,
+            map: server.map.name,
+            size: size,
+            era: eraName,
+            group: groupNode.id
+          };
+          allNodes.push(serverNode);
+          allLinks.push({ source: groupNode.id, target: serverNode.id });
+
+          mapsSet.add(server.map.name);
+        }
+      }
+    }
+
+    eras.forEach(era => {
+      d3.select("#eraFilter").append("option").text(era).attr("value", era);
+    });
+    mapsSet.forEach(map => {
+      d3.select("#mapFilter").append("option").text(map).attr("value", map);
+    });
+
+    document.getElementById("eraFilter").value = "New Era";
+    document.getElementById("pvpFilter").value = "true";
+
+    render();
+  });
+
+function render() {
+  function applyFilters() {
+    const eraVal = document.getElementById("eraFilter").value;
+    const mapVal = document.getElementById("mapFilter").value;
+    const pvpVal = document.getElementById("pvpFilter").value;
+
+    const serverNodes = allNodes.filter(d => {
+      if (d.type !== "server") return false;
+      if (eraVal !== "all" && d.era !== eraVal) return false;
+      if (mapVal !== "all" && d.map !== mapVal) return false;
+      if (pvpVal !== "all" && String(d.pvp) !== pvpVal) return false;
+      return true;
+    });
+
+    const groupNodeIds = new Set(serverNodes.map(d => d.group));
+    const eraNodeIds = new Set();
+
+    const groupNodes = allNodes.filter(d => {
+      if (d.type === "group" && groupNodeIds.has(d.id)) {
+        eraNodeIds.add(`era-${d.era}`);
+        return true;
+      }
+      return false;
+    });
+
+    const eraNodes = allNodes.filter(d => d.type === "era" && eraNodeIds.has(d.id));
+
+    const nodes = [...serverNodes, ...groupNodes, ...eraNodes];
+
+    const nodeIdSet = new Set(nodes.map(n => n.id));
+    const filteredLinks = allLinks.filter(l =>
+      nodeIdSet.has(typeof l.source === "string" ? l.source : l.source.id) &&
+      nodeIdSet.has(typeof l.target === "string" ? l.target : l.target.id)
+    );
+
+    draw(nodes, filteredLinks);
+  }
+
+  d3.selectAll("#eraFilter, #mapFilter, #pvpFilter").on("change", applyFilters);
+  applyFilters();
+}
+
+function draw(nodes, links) {
+  svgGroup.selectAll("*").remove();
+
+  const link = svgGroup.append("g")
+    .attr("stroke", "#aaa")
+    .selectAll("line")
+    .data(links)
+    .join("line");
+
+  const nodeGroup = svgGroup.append("g")
+    .selectAll("g")
+    .data(nodes)
+    .join("g")
+    .call(drag(simulation));
+
+  // Draw shapes based on node type
+  nodeGroup.each(function(d) {
+    const group = d3.select(this);
+    if (d.type === "server") {
+      group.append("circle")
+        .attr("r", d.size)
+        .attr("fill", d.pvp ? "orange" : "blue")
+        .attr("stroke", d.map === "Xizhou" ? "blue" :
+                       d.map === "Zhongzhou" ? "brown" :
+                       d.map === "Dongzhou" ? "yellow" : "gray")
+        .attr("stroke-width", 2.5);
+    } else if (d.type === "era") {
+      group.append("rect")
+        .attr("x", -25).attr("y", -15)
+        .attr("width", 50).attr("height", 30)
+        .attr("fill", "#ccc")
+        .attr("stroke", "#888")
+        .attr("rx", 6);
+    } else if (d.type === "group") {
+      group.append("path")
+        .attr("d", "M 0,-15 L 15,0 L 0,15 L -15,0 Z")
+        .attr("fill", "#ccc")
+        .attr("stroke", "#888");
+    }
+
+    group.append("text")
+      .text(d.label)
+      .attr("font-size", "10px")
+      .attr("text-anchor", "middle")
+      .attr("dy", d.type === "server" ? -4 : 4);
+    
+    if (d.type === "server") {
+      group.append("text")
+        .text(d.players)
+        .attr("font-size", "8px")
+        .attr("text-anchor", "middle")
+        .attr("dy", 4);
+    }
+  });
+
+  const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+  links.forEach(link => {
+    link.source = nodeById[link.source.id || link.source];
+    link.target = nodeById[link.target.id || link.target];
+  });
+
+  simulation.nodes(nodes).on("tick", () => {
+    link
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y);
+
+    nodeGroup.attr("transform", d => `translate(${d.x},${d.y})`);
+  });
+
+  simulation.force("link").links(links);
+  simulation.alpha(1).restart();
+}
+</script>
+</body>
+</html>
