@@ -133,9 +133,9 @@ fetch("/api/servers")
       d3.select("#eraFilter").append("option").text(era).attr("value", era);
     });
     mapsSet.forEach(map => {
-      d3.select("#mapFilter").append("option").text(d.mapurl === "xizhou" ? "Xizhou" :
-                       d.mapurl === "leagcy" ? "Zongzhou" :
-                       d.mapurl === "v1" ? "Dongzhou" : "").attr("value", mapurl);
+      d3.select("#mapFilter").append("option").text(mapurl === "xizhou" ? "Xizhou" :
+                       mapurl === "leagcy" ? "Zongzhou" :
+                       mapurl === "v1" ? "Dongzhou" : "").attr("value", mapurl);
     });
 
     document.getElementById("eraFilter").value = "New Era";
