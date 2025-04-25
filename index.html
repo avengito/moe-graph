@@ -205,10 +205,10 @@ function draw(nodes, links) {
     if (d.type === "server") {
       group.append("circle")
         .attr("r", d.size)
-        .attr("fill", d.pvp ? "orange" : "blue")
-        .attr("stroke", d.map === "Xizhou" ? "blue" :
+        .attr("fill", d.pvp ? "orange" : "cyan")
+        .attr("stroke", d.map === "Xizhou" ? "yellow" :
                        d.map === "Zhongzhou" ? "brown" :
-                       d.map === "Dongzhou" ? "yellow" : "gray")
+                       d.map === "Dongzhou" ? "blue" : "gray")
         .attr("stroke-width", 2.5);
     } else if (d.type === "era") {
       group.append("rect")
