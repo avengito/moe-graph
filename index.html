@@ -89,7 +89,7 @@ function drag(simulation) {
 let allNodes = [];
 let allLinks = [];
 
-fetch("/api/servers")
+fetch("http://localhost:3000/api/servers")
   .then(res => res.json())
   .then(data => {
     const eras = Object.keys(data);
@@ -115,8 +115,7 @@ fetch("/api/servers")
             players: players,
             type: "server",
             pvp: server.pvp,
-            map: server.map.name,
-            mapurl: server.map.url,
+            map: server.map.url,
             size: size,
             era: eraName,
             group: groupNode.id
@@ -124,7 +123,7 @@ fetch("/api/servers")
           allNodes.push(serverNode);
           allLinks.push({ source: groupNode.id, target: serverNode.id });
 
-          mapsSet.add(server.map.name);
+          mapsSet.add(server.map.url);
         }
       }
     }
@@ -133,9 +132,9 @@ fetch("/api/servers")
       d3.select("#eraFilter").append("option").text(era).attr("value", era);
     });
     mapsSet.forEach(map => {
-      d3.select("#mapFilter").append("option").text(mapurl === "xizhou" ? "Xizhou" :
-                       mapurl === "leagcy" ? "Zongzhou" :
-                       mapurl === "v1" ? "Dongzhou" : "").attr("value", mapurl);
+      d3.select("#mapFilter").append("option").text(map === "xizhou" ? "Xizhou" :
+                       map === "leagcy" ? "Zongzhou" :
+                       map === "v1" ? "Dongzhou" : "").attr("value", map);
     });
 
     document.getElementById("eraFilter").value = "New Era";
@@ -213,9 +212,9 @@ function draw(nodes, links) {
                        d.map === "Zhongzhou" ? "brown" :
                        d.map === "Dongzhou" ? "blue" : "gray")
         */
-        .attr("stroke", d.mapurl === "xizhou" ? "yellow" :
-                       d.mapurl === "leagcy" ? "brown" :
-                       d.mapurl === "v1" ? "blue" : "gray")
+        .attr("stroke", d.map === "xizhou" ? "yellow" :
+                       d.map === "leagacy" ? "brown" :
+                       d.map === "v1" ? "blue" : "gray")
         .attr("stroke-width", 2.5);
     } else if (d.type === "era") {
       group.append("rect")
