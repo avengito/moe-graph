@@ -108,7 +108,7 @@ fetch("/api/servers")
         for (const serverId in group.servers) {
           const server = group.servers[serverId];
           const players = server.players;
-          const size = 15+ players*0.8;
+          const size = 15 + players * 0.8;
           const serverNode = {
             id: `server-${server.id}`,
             label: server.id,
@@ -116,6 +116,7 @@ fetch("/api/servers")
             type: "server",
             pvp: server.pvp,
             map: server.map.name,
+            mapurl: server.map.url,
             size: size,
             era: eraName,
             group: groupNode.id
@@ -132,7 +133,9 @@ fetch("/api/servers")
       d3.select("#eraFilter").append("option").text(era).attr("value", era);
     });
     mapsSet.forEach(map => {
-      d3.select("#mapFilter").append("option").text(map).attr("value", map);
+      d3.select("#mapFilter").append("option").text(d.mapurl === "xizhou" ? "Xizhou" :
+                       d.mapurl === "leagcy" ? "Zongzhou" :
+                       d.mapurl === "v1" ? "Dongzhou" : "").attr("value", mapurl);
     });
 
     document.getElementById("eraFilter").value = "New Era";
@@ -205,9 +208,14 @@ function draw(nodes, links) {
       group.append("circle")
         .attr("r", d.size)
         .attr("fill", d.pvp ? "orange" : "cyan")
+        /*
         .attr("stroke", d.map === "Xizhou" ? "yellow" :
                        d.map === "Zhongzhou" ? "brown" :
                        d.map === "Dongzhou" ? "blue" : "gray")
+        */
+        .attr("stroke", d.mapurl === "xizhou" ? "yellow" :
+                       d.mapurl === "leagcy" ? "brown" :
+                       d.mapurl === "v1" ? "blue" : "gray")
         .attr("stroke-width", 2.5);
     } else if (d.type === "era") {
       group.append("rect")
