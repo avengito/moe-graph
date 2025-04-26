@@ -12,6 +12,7 @@
       width: 100%;
       overflow: hidden;
       font-family: sans-serif;
+      background-color: whitesmoke;
     }
     svg {
       width: 100%;
@@ -133,7 +134,7 @@ fetch("http://localhost:3000/api/servers")
     });
     mapsSet.forEach(map => {
       d3.select("#mapFilter").append("option").text(map === "xizhou" ? "Xizhou" :
-                       map === "leagcy" ? "Zongzhou" :
+                       map === "leagacy" ? "Zongzhou" :
                        map === "v1" ? "Dongzhou" : "").attr("value", map);
     });
 
@@ -207,14 +208,9 @@ function draw(nodes, links) {
       group.append("circle")
         .attr("r", d.size)
         .attr("fill", d.pvp ? "orange" : "cyan")
-        /*
-        .attr("stroke", d.map === "Xizhou" ? "yellow" :
-                       d.map === "Zhongzhou" ? "brown" :
-                       d.map === "Dongzhou" ? "blue" : "gray")
-        */
-        .attr("stroke", d.map === "xizhou" ? "yellow" :
-                       d.map === "leagacy" ? "brown" :
-                       d.map === "v1" ? "blue" : "gray")
+        .attr("stroke", d.map === "leagacy" ? "brown" :
+                        d.map === "v1" ? "blue" :
+                        d.map === "xizhou" ? "yellow" : "gray")
         .attr("stroke-width", 2.5);
     } else if (d.type === "era") {
       group.append("rect")
