@@ -90,7 +90,7 @@ function drag(simulation) {
 let allNodes = [];
 let allLinks = [];
 
-fetch("http://localhost:3000/api/servers")
+fetch("/api/servers")
   .then(res => res.json())
   .then(data => {
     const eras = Object.keys(data);
@@ -210,7 +210,7 @@ function draw(nodes, links) {
         .attr("fill", d.pvp ? "orange" : "cyan")
         .attr("stroke", d.map === "leagacy" ? "brown" :
                         d.map === "v1" ? "blue" :
-                        d.map === "xizhou" ? "yellow" : "gray")
+                        d.map === "xizhou" ? "gold" : "gray")
         .attr("stroke-width", 2.5);
     } else if (d.type === "era") {
       group.append("rect")
